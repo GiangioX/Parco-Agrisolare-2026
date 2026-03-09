@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain.agents import create_openai_tools_agent, AgentExecutor
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.tools import tool
 
@@ -66,7 +66,7 @@ def get_rag_chain():
         MessagesPlaceholder(variable_name="agent_scratchpad"),
     ])
     
-    agent = create_tool_calling_agent(llm, tools, prompt)
+    agent = create_openai_tools_agent(llm, tools, prompt)
     agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
     
     return agent_executor
