@@ -174,9 +174,13 @@ if "rag_chain" not in st.session_state:
             try:
                 from rag_engine import get_rag_chain
                 st.session_state.rag_chain = get_rag_chain()
-            except ImportError:
+                st.session_state.rag_error = None
+            except Exception as e:
+                import traceback
+                st.session_state.rag_error = f"{type(e).__name__}: {str(e)}"
                 st.session_state.rag_chain = None
     else:
+        st.session_state.rag_error = None
         st.session_state.rag_chain = None
 
 # Sidebar
@@ -388,19 +392,20 @@ with tab3:
     st.markdown("Fai una domanda per verificare l'**ammissibilità del tuo codice ATECO**, i requisiti tecnici (vincolo autoconsumo vs vendita), la differenza con le procedure canoniche DILA/PAS per il fotovoltaico a terra e i prerequisiti per presentare le domande sul portale GSE del **10 Marzo 2026**.")
     
     if not st.session_state.rag_chain:
-        st.warning("⚠️ **Assistente Offline** - Inserisci OPENAI_API_KEY nel file `.env` e riavvia per sbloccare la consulenza in tempo reale sul bando Agrisolare 2026.")
+        if st.session_state.get("rag_error"):
+            st.error(f"Errore caricamento Modello AI: {st.session_state.rag_error}\nVerifica i logs o i pacchetti Python installati.")
+        else:
+            st.warning("⚠️ **Assistente Offline** - Inserisci OPENAI_API_KEY nel file `.env` e riavvia per sbloccare la consulenza in tempo reale sul bando Agrisolare 2026.")
         
     # Quick Prompts
-    st.markdown("<p style='font-size: 0.9rem; color: #a3c4a9; margin-bottom: 5px;'>Schiaccia un pulsante o scrivi la tua domanda personalizzata:</p>", unsafe_allow_html=True)
-    qp1, qp2, qp3 = st.columns(3)
-    quick_prompt = None
+    st.markdown("<p style='font-size: 0.9rem; color: #a3c4a9; margin-bottom: 5px;'>💡 <b>Spunti di domanda (Copia e incolla):</b></p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 0.85rem; color: #e6f0e9; background: #121e15; padding: 10px; border-radius: 8px; border: 1px solid #1c3224; line-height: 1.4;'>"
+                "• <i>Le imprese con attività agrituristica mista o serre possono partecipare al Bando Agrisolare 2026? Quali codici ATECO sono idonei?</i><br>"
+                "• <i>Nel bando l'energia fotovoltaica prodotta deve essere totalmente autoconsumata dall'azienda o può essere immessa in rete?</i><br>"
+                "• <i>C'è un limite massimo assoluto in €/kWp per il fotovoltaico e per l'accumulo dettato dal GSE per le spese?</i>"
+                "</p>", unsafe_allow_html=True)
     
-    if qp1.button("Imprese miste ed ATECO ammessi?"): 
-        quick_prompt = "Le imprese agricole con attività agrituristica mista o serre possono partecipare al Bando Agrisolare 2026? Quali codici ATECO sono idonei?"
-    if qp2.button("Autoconsumo o Vendita?"): 
-        quick_prompt = "Nel bando Agrisolare 2026 l'energia fotovoltaica prodotta deve essere totalmente autoconsumata dall'azienda o può essere venduta in rete? Cosa cambia per i raggruppamenti (CER/AUC)?"
-    if qp3.button("Limiti di spesa e GSE?"): 
-        quick_prompt = "C'è un limite massimo assoluto in €/kWp per il fotovoltaico e per i sistemi di accumulo associati all'impianto dettato dal GSE per giustificare le spese?"
+    quick_prompt = None
 
     prompt = st.chat_input("Poni il tuo quesito normativo o tecnico all'IA Agrisolare...")
     
