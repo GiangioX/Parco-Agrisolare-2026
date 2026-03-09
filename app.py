@@ -231,11 +231,28 @@ with st.sidebar:
 # Main Interface
 st.title("🚜 Parco Agrisolare 2026")
 st.markdown("<p style='font-size: 1.2rem; color: #a3c4a9; margin-top: -10px; font-weight: 400;'>Piattaforma informativa, simulatore incentivi e consulente IA per le aziende agricole.</p>", unsafe_allow_html=True)
-# Setup query params for tab state retention (optional, minimal effort to mitigate chat reset)
-tab1, tab2, tab3 = st.tabs(["ℹ️ Informativa Bando", "💶 Simulatore Contributo", "💬 Assistente Agrisolare"])
+# Buttons-based tabs
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = "tab1"
+
+t1, t2, t3 = st.columns(3)
+if t1.button("ℹ️ Informativa Bando", use_container_width=True, type="primary" if st.session_state.active_tab == "tab1" else "secondary"):
+    if st.session_state.active_tab != "tab1":
+        st.session_state.active_tab = "tab1"
+        st.rerun()
+if t2.button("💶 Simulatore Contributo", use_container_width=True, type="primary" if st.session_state.active_tab == "tab2" else "secondary"):
+    if st.session_state.active_tab != "tab2":
+        st.session_state.active_tab = "tab2"
+        st.rerun()
+if t3.button("💬 Assistente Agrisolare", use_container_width=True, type="primary" if st.session_state.active_tab == "tab3" else "secondary"):
+    if st.session_state.active_tab != "tab3":
+        st.session_state.active_tab = "tab3"
+        st.rerun()
+
+st.markdown("<hr style='border: none; border-top: 1px solid #1c3224; margin: 10px 0 25px 0;'>", unsafe_allow_html=True)
 
 # --- TAB 1: INFORMATIVA ---
-with tab1:
+if st.session_state.active_tab == "tab1":
     st.markdown("""
     ### 🎯 Obiettivi e Contesto della Misura
 
@@ -303,7 +320,7 @@ with tab1:
     """)
 
 # --- TAB 2: SIMULATORE ---
-with tab2:
+if st.session_state.active_tab == "tab2":
     st.markdown("### 🧮 Simulatore Plafond Ammissibile")
     st.markdown("Usa questo strumento per stimare rapidamente la **Spesa Massima Ammissibile** secondo i parametri medi di mercato (che verranno cappati dai limiti €/kW indicati nelle direttive GSE) e valutare i ritorni economici potenziali.")
     
@@ -380,7 +397,7 @@ with tab2:
 
 
 # --- TAB 3: CHAT AI ---
-with tab3:
+if st.session_state.active_tab == "tab3":
     st.markdown("### 💬 L'Intelligenza Artificiale che Conosce il Bando 2026")
     st.markdown("Fai una domanda per verificare l'**ammissibilità del tuo codice ATECO**, i requisiti tecnici (vincolo autoconsumo vs vendita), la differenza con le procedure canoniche DILA/PAS per il fotovoltaico a terra e i prerequisiti per presentare le domande sul portale GSE del **10 Marzo 2026**.")
     
@@ -402,13 +419,20 @@ with tab3:
     if qp3.button("Limiti di spesa e GSE?"): 
         quick_prompt = "C'è un limite massimo assoluto in €/kWp per il fotovoltaico e per i sistemi di accumulo associati all'impianto dettato dal GSE per giustificare le spese?"
 
-    with st.form("chat_form", clear_on_submit=True):
-        user_input = st.text_area("Poni il tuo quesito normativo o tecnico all'IA Agrisolare...", height=100)
-        submitted = st.form_submit_button("Invia Domanda 🚀")
+    # Single-line text input that submits on Enter
+    if "user_question" not in st.session_state:
+        st.session_state.user_question = ""
+        
+    def submit_question():
+        st.session_state.submitted_q = st.session_state.user_question
+        st.session_state.user_question = ""
+        
+    st.text_input("Poni il tuo quesito normativo o tecnico all'IA Agrisolare e premi Invio...", key="user_question", on_change=submit_question)
         
     active_prompt = None
-    if submitted and user_input.strip():
-        active_prompt = user_input.strip()
+    if st.session_state.get("submitted_q"):
+        active_prompt = st.session_state.submitted_q.strip()
+        st.session_state.submitted_q = ""  # Reset
     elif quick_prompt:
         active_prompt = quick_prompt
 
