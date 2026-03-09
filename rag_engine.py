@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.agents import AgentExecutor
+from langchain.agents.agent import AgentExecutor
 from langchain.agents.openai_tools.base import create_openai_tools_agent
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.tools import tool
