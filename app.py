@@ -452,7 +452,6 @@ if st.session_state.active_tab == "tab3":
             st.session_state.chat_messages.append({"role": "assistant", "content": answer})
 
     st.markdown("<hr style='border-color: #1c3224; margin: 30px 0;'>", unsafe_allow_html=True)
-    st.markdown("#### Storico Conversazione (Ultimi messaggi in alto)")
     
     # Render Chat REVERSED
     reversed_msgs = list(reversed(st.session_state.chat_messages))
