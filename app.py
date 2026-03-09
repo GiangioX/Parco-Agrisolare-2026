@@ -118,36 +118,22 @@ st.markdown("""
         gap: 6px;
     }
     
-    /* Segmented Control / Radio as Tabs */
-    div.row-widget.stRadio > div {
-        flex-direction: row;
-        align-items: stretch;
-        background-color: #121e15;
-        padding: 5px 10px;
-        border-radius: 12px;
-        border: 1px solid #1c3224;
-        gap: 15px;
+    /* Tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 20px;
+        border-bottom: 1px solid #1c3224;
     }
-    div.row-widget.stRadio > div > label {
-        background-color: transparent;
-        padding: 10px 15px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.2s;
-        margin: 0;
-    }
-    div.row-widget.stRadio > div > label:hover {
-        background-color: rgba(252, 163, 17, 0.1);
-    }
-    /* Hide the radio circle */
-    div.row-widget.stRadio > div > label > div:first-child { 
-        display: none !important; 
-    }
-    div.row-widget.stRadio > div > label p {
-        font-size: 1.1rem;
-        font-weight: 600;
+    .stTabs [data-baseweb="tab"] {
         color: #8b9d91;
-        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 500;
+        padding-bottom: 10px;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #fca311 !important;
+        font-weight: 700 !important;
+        border-bottom-color: #fca311 !important;
+        border-bottom-width: 3px !important;
     }
     
     /* Headers & Markdown */
@@ -246,22 +232,10 @@ with st.sidebar:
 st.title("🚜 Parco Agrisolare 2026")
 st.markdown("<p style='font-size: 1.2rem; color: #a3c4a9; margin-top: -10px; font-weight: 400;'>Piattaforma informativa, simulatore incentivi e consulente IA per le aziende agricole.</p>", unsafe_allow_html=True)
 # Setup query params for tab state retention (optional, minimal effort to mitigate chat reset)
-if "active_tab" not in st.session_state:
-    st.session_state.active_tab = "ℹ️ Informativa Bando"
-
-tabs_list = ["ℹ️ Informativa Bando", "💶 Simulatore Contributo", "💬 Assistente Agrisolare"]
-
-# Render the custom radio buttons
-st.session_state.active_tab = st.radio(
-    "Navigazione", 
-    tabs_list, 
-    horizontal=True, 
-    label_visibility="collapsed",
-    index=tabs_list.index(st.session_state.active_tab) if st.session_state.active_tab in tabs_list else 0
-)
+tab1, tab2, tab3 = st.tabs(["ℹ️ Informativa Bando", "💶 Simulatore Contributo", "💬 Assistente Agrisolare"])
 
 # --- TAB 1: INFORMATIVA ---
-if st.session_state.active_tab == tabs_list[0]:
+with tab1:
     st.markdown("""
     ### 🎯 Obiettivi e Contesto della Misura
 
@@ -329,7 +303,7 @@ if st.session_state.active_tab == tabs_list[0]:
     """)
 
 # --- TAB 2: SIMULATORE ---
-if st.session_state.active_tab == tabs_list[1]:
+with tab2:
     st.markdown("### 🧮 Simulatore Plafond Ammissibile")
     st.markdown("Usa questo strumento per stimare rapidamente la **Spesa Massima Ammissibile** secondo i parametri medi di mercato (che verranno cappati dai limiti €/kW indicati nelle direttive GSE) e valutare i ritorni economici potenziali.")
     
@@ -406,7 +380,7 @@ if st.session_state.active_tab == tabs_list[1]:
 
 
 # --- TAB 3: CHAT AI ---
-if st.session_state.active_tab == tabs_list[2]:
+with tab3:
     st.markdown("### 💬 L'Intelligenza Artificiale che Conosce il Bando 2026")
     st.markdown("Fai una domanda per verificare l'**ammissibilità del tuo codice ATECO**, i requisiti tecnici (vincolo autoconsumo vs vendita), la differenza con le procedure canoniche DILA/PAS per il fotovoltaico a terra e i prerequisiti per presentare le domande sul portale GSE del **10 Marzo 2026**.")
     
@@ -428,43 +402,43 @@ if st.session_state.active_tab == tabs_list[2]:
     if qp3.button("Limiti di spesa e GSE?"): 
         quick_prompt = "C'è un limite massimo assoluto in €/kWp per il fotovoltaico e per i sistemi di accumulo associati all'impianto dettato dal GSE per giustificare le spese?"
 
-    prompt = st.chat_input("Poni il tuo quesito normativo o tecnico all'IA Agrisolare...")
-    
-    active_prompt = prompt if prompt else quick_prompt
+    with st.form("chat_form", clear_on_submit=True):
+        user_input = st.text_area("Poni il tuo quesito normativo o tecnico all'IA Agrisolare...", height=100)
+        submitted = st.form_submit_button("Invia Domanda 🚀")
+        
+    active_prompt = None
+    if submitted and user_input.strip():
+        active_prompt = user_input.strip()
+    elif quick_prompt:
+        active_prompt = quick_prompt
 
     if active_prompt:
         st.session_state.chat_messages.append({"role": "user", "content": active_prompt})
-
-    # Render Chat
-    pairs = []
-    msgs = st.session_state.chat_messages
-    for i in range(0, len(msgs), 2):
-        if i + 1 < len(msgs):
-            pairs.append((msgs[i], msgs[i+1]))
-        else:
-            pairs.append((msgs[i], None))
+        
+        with st.spinner("Ricerca nei decreti MASAF e nelle Linee Guida GSE (Bando 2026)..."):
+            if st.session_state.rag_chain:
+                try:
+                    response = st.session_state.rag_chain.invoke({"input": active_prompt})
+                    answer = response.get("output", str(response))
+                except Exception as e:
+                    answer = f"Errore server AI: {e}"
+            else:
+                answer = "*(Questa è una demo off-line. Per rispondere esplorerei il regolamento del MASAF e le linee guida del GSE relative al tuo quesito. Collega OpenAI per testare l'algoritmo completo)*."
             
-    for pair in reversed(pairs):
-        with st.chat_message("user", avatar="🧑‍🌾"):
-            st.markdown(f"<span style='color: #e6f0e9;'>{pair[0]['content']}</span>", unsafe_allow_html=True)
+            st.session_state.chat_messages.append({"role": "assistant", "content": answer})
 
-        if pair[1] is not None:
-            with st.chat_message("assistant", avatar="🚜"):
-                st.markdown(pair[1]["content"])
+    st.markdown("<hr style='border-color: #1c3224; margin: 30px 0;'>", unsafe_allow_html=True)
+    st.markdown("#### Storico Conversazione (Ultimi messaggi in alto)")
+    
+    # Render Chat REVERSED
+    reversed_msgs = list(reversed(st.session_state.chat_messages))
+    for msg in reversed_msgs:
+        if msg["role"] == "user":
+            with st.chat_message("user", avatar="🧑‍🌾"):
+                st.markdown(f"<span style='color: #e6f0e9;'>{msg['content']}</span>", unsafe_allow_html=True)
         else:
             with st.chat_message("assistant", avatar="🚜"):
-                with st.spinner("Ricerca nei decreti MASAF e nelle Linee Guida GSE (Bando 2026)..."):
-                    if st.session_state.rag_chain:
-                        try:
-                            response = st.session_state.rag_chain.invoke({"input": pair[0]["content"]})
-                            answer = response.get("output", str(response))
-                        except Exception as e:
-                            answer = f"Errore server AI: {e}"
-                    else:
-                        answer = "*(Questa è una demo off-line. Per rispondere esplorerei il regolamento del MASAF e le linee guida del GSE relative al tuo quesito. Collega OpenAI per testare l'algoritmo completo)*."
-                        
-                    st.markdown(answer)
-                    st.session_state.chat_messages.append({"role": "assistant", "content": answer})
+                st.markdown(msg["content"])
 
 # Footer UI
 st.markdown("<hr style='border-color: #1c3224; margin-top: 50px;'>", unsafe_allow_html=True)
