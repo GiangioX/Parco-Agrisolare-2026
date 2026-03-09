@@ -118,22 +118,36 @@ st.markdown("""
         gap: 6px;
     }
     
-    /* Tabs styling */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 20px;
-        border-bottom: 1px solid #1c3224;
+    /* Segmented Control / Radio as Tabs */
+    div.row-widget.stRadio > div {
+        flex-direction: row;
+        align-items: stretch;
+        background-color: #121e15;
+        padding: 5px 10px;
+        border-radius: 12px;
+        border: 1px solid #1c3224;
+        gap: 15px;
     }
-    .stTabs [data-baseweb="tab"] {
-        color: #8b9d91;
+    div.row-widget.stRadio > div > label {
+        background-color: transparent;
+        padding: 10px 15px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin: 0;
+    }
+    div.row-widget.stRadio > div > label:hover {
+        background-color: rgba(252, 163, 17, 0.1);
+    }
+    /* Hide the radio circle */
+    div.row-widget.stRadio > div > label > div:first-child { 
+        display: none !important; 
+    }
+    div.row-widget.stRadio > div > label p {
         font-size: 1.1rem;
-        font-weight: 500;
-        padding-bottom: 10px;
-    }
-    .stTabs [aria-selected="true"] {
-        color: #fca311 !important;
-        font-weight: 700 !important;
-        border-bottom-color: #fca311 !important;
-        border-bottom-width: 3px !important;
+        font-weight: 600;
+        color: #8b9d91;
+        margin: 0;
     }
     
     /* Headers & Markdown */
@@ -233,16 +247,21 @@ st.title("🚜 Parco Agrisolare 2026")
 st.markdown("<p style='font-size: 1.2rem; color: #a3c4a9; margin-top: -10px; font-weight: 400;'>Piattaforma informativa, simulatore incentivi e consulente IA per le aziende agricole.</p>", unsafe_allow_html=True)
 # Setup query params for tab state retention (optional, minimal effort to mitigate chat reset)
 if "active_tab" not in st.session_state:
-    st.session_state.active_tab = "Informativa"
+    st.session_state.active_tab = "ℹ️ Informativa Bando"
 
-query_params = st.query_params
-if "tab" in query_params:
-    st.session_state.active_tab = query_params["tab"]
+tabs_list = ["ℹ️ Informativa Bando", "💶 Simulatore Contributo", "💬 Assistente Agrisolare"]
 
-tab1, tab2, tab3 = st.tabs(["ℹ️ Informativa Bando", "💶 Simulatore Contributo", "💬 Assistente Agrisolare"])
+# Render the custom radio buttons
+st.session_state.active_tab = st.radio(
+    "Navigazione", 
+    tabs_list, 
+    horizontal=True, 
+    label_visibility="collapsed",
+    index=tabs_list.index(st.session_state.active_tab) if st.session_state.active_tab in tabs_list else 0
+)
 
 # --- TAB 1: INFORMATIVA ---
-with tab1:
+if st.session_state.active_tab == tabs_list[0]:
     st.markdown("""
     ### 🎯 Obiettivi e Contesto della Misura
 
@@ -310,7 +329,7 @@ with tab1:
     """)
 
 # --- TAB 2: SIMULATORE ---
-with tab2:
+if st.session_state.active_tab == tabs_list[1]:
     st.markdown("### 🧮 Simulatore Plafond Ammissibile")
     st.markdown("Usa questo strumento per stimare rapidamente la **Spesa Massima Ammissibile** secondo i parametri medi di mercato (che verranno cappati dai limiti €/kW indicati nelle direttive GSE) e valutare i ritorni economici potenziali.")
     
@@ -387,7 +406,7 @@ with tab2:
 
 
 # --- TAB 3: CHAT AI ---
-with tab3:
+if st.session_state.active_tab == tabs_list[2]:
     st.markdown("### 💬 L'Intelligenza Artificiale che Conosce il Bando 2026")
     st.markdown("Fai una domanda per verificare l'**ammissibilità del tuo codice ATECO**, i requisiti tecnici (vincolo autoconsumo vs vendita), la differenza con le procedure canoniche DILA/PAS per il fotovoltaico a terra e i prerequisiti per presentare le domande sul portale GSE del **10 Marzo 2026**.")
     
@@ -398,14 +417,16 @@ with tab3:
             st.warning("⚠️ **Assistente Offline** - Inserisci OPENAI_API_KEY nel file `.env` e riavvia per sbloccare la consulenza in tempo reale sul bando Agrisolare 2026.")
         
     # Quick Prompts
-    st.markdown("<p style='font-size: 0.9rem; color: #a3c4a9; margin-bottom: 5px;'>💡 <b>Spunti di domanda (Copia e incolla):</b></p>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 0.85rem; color: #e6f0e9; background: #121e15; padding: 10px; border-radius: 8px; border: 1px solid #1c3224; line-height: 1.4;'>"
-                "• <i>Le imprese con attività agrituristica mista o serre possono partecipare al Bando Agrisolare 2026? Quali codici ATECO sono idonei?</i><br>"
-                "• <i>Nel bando l'energia fotovoltaica prodotta deve essere totalmente autoconsumata dall'azienda o può essere immessa in rete?</i><br>"
-                "• <i>C'è un limite massimo assoluto in €/kWp per il fotovoltaico e per l'accumulo dettato dal GSE per le spese?</i>"
-                "</p>", unsafe_allow_html=True)
-    
+    st.markdown("<p style='font-size: 0.9rem; color: #a3c4a9; margin-bottom: 5px;'>Schiaccia un pulsante o scrivi la tua domanda personalizzata:</p>", unsafe_allow_html=True)
+    qp1, qp2, qp3 = st.columns(3)
     quick_prompt = None
+    
+    if qp1.button("Imprese miste ed ATECO ammessi?"): 
+        quick_prompt = "Le imprese agricole con attività agrituristica mista o serre possono partecipare al Bando Agrisolare 2026? Quali codici ATECO sono idonei?"
+    if qp2.button("Autoconsumo o Vendita?"): 
+        quick_prompt = "Nel bando Agrisolare 2026 l'energia fotovoltaica prodotta deve essere totalmente autoconsumata dall'azienda o può essere venduta in rete? Cosa cambia per i raggruppamenti (CER/AUC)?"
+    if qp3.button("Limiti di spesa e GSE?"): 
+        quick_prompt = "C'è un limite massimo assoluto in €/kWp per il fotovoltaico e per i sistemi di accumulo associati all'impianto dettato dal GSE per giustificare le spese?"
 
     prompt = st.chat_input("Poni il tuo quesito normativo o tecnico all'IA Agrisolare...")
     
